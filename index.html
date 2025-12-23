@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -33,9 +34,15 @@
     }
 
     .snow-container {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; z-index: 50;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 50;
     }
+
     .snowflake {
       position: absolute;
       background: white;
@@ -44,9 +51,15 @@
       pointer-events: none;
       animation: fall linear infinite;
     }
+
     @keyframes fall {
-      0% { transform: translateY(-10vh) translateX(0); }
-      100% { transform: translateY(110vh) translateX(20px); }
+      0% {
+        transform: translateY(-10vh) translateX(0);
+      }
+
+      100% {
+        transform: translateY(110vh) translateX(20px);
+      }
     }
 
     .glass-card {
@@ -56,8 +69,13 @@
       border-radius: 20px;
     }
 
-    .product-card { transition: transform 0.2s ease; }
-    .product-card:active { transform: scale(0.95); }
+    .product-card {
+      transition: transform 0.2s ease;
+    }
+
+    .product-card:active {
+      transform: scale(0.95);
+    }
 
     .badge {
       background: var(--holiday-red);
@@ -80,13 +98,33 @@
       transition: all 0.3s;
       user-select: none;
     }
+
     .category-pill.active {
       background: var(--holiday-red);
       color: white;
     }
 
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    input,
+    textarea {
+      -webkit-user-select: text !important;
+      user-select: text !important;
+    }
+
+    #checkout-modal input,
+    #checkout-modal textarea {
+      position: relative;
+      z-index: 310;
+      pointer-events: auto !important;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   </style>
 </head>
 
@@ -105,10 +143,10 @@
     <div class="relative" onclick="showView('cart')" role="button" aria-label="Открыть корзину">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
       </svg>
       <span id="cart-count"
-            class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold">0</span>
+        class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold">0</span>
     </div>
   </header>
 
@@ -120,7 +158,8 @@
   <!-- Основной контент -->
   <main id="view-home" class="px-4">
     <!-- Баннер -->
-    <div class="relative overflow-hidden rounded-2xl mb-6 h-40 bg-gradient-to-r from-red-600 to-red-800 text-white p-6 flex flex-col justify-center">
+    <div
+      class="relative overflow-hidden rounded-2xl mb-6 h-40 bg-gradient-to-r from-red-600 to-red-800 text-white p-6 flex flex-col justify-center">
       <h2 class="text-2xl font-bold mb-1">Скидка -20%</h2>
       <p class="text-sm opacity-90 mb-3">На праздничные наборы (если включено бизнесом)</p>
       <div id="promo-pill" class="text-xs bg-white/20 self-start px-3 py-1 rounded-full hidden"></div>
@@ -141,8 +180,7 @@
     <h2 class="text-2xl font-bold mb-6 flex items-center">
       <button onclick="showView('home')" class="mr-4" aria-label="Назад">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
       </button>
       Корзина
@@ -170,7 +208,7 @@
         <span id="summary-total">0 ₽</span>
       </div>
       <button onclick="openCheckout()"
-              class="w-full bg-[#14452f] text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
+        class="w-full bg-[#14452f] text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
         Оформить заказ
       </button>
     </div>
@@ -178,14 +216,15 @@
 
   <!-- Toast -->
   <div id="toast"
-       class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-full text-sm z-[200] opacity-0 transition-opacity pointer-events-none">
+    class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-full text-sm z-[200] opacity-0 transition-opacity pointer-events-none">
     Добавлено в корзину! 🎁
   </div>
 
   <!-- Checkout modal -->
   <div id="checkout-modal" class="fixed inset-0 z-[300] hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeCheckout()"></div>
-    <div class="absolute left-1/2 top-1/2 w-[92%] max-w-md -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-5 shadow-2xl">
+    <div
+      class="absolute left-1/2 top-1/2 w-[92%] max-w-md -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-5 shadow-2xl">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-lg font-bold">Оформление заказа</h3>
         <button class="text-gray-400" onclick="closeCheckout()" aria-label="Закрыть">✕</button>
@@ -194,7 +233,7 @@
       <div class="space-y-3">
         <div>
           <label class="text-xs text-gray-500">Имя</label>
-          <input id="c-name" class="w-full mt-1 p-3 rounded-xl border border-gray-200" placeholder="Как к вам обращаться?" />
+          <input id="c-name" class="w-full mt-1 p-3 rounded-xl border border-gray-200" inputmode="text" placeholder="Как к вам обращаться?" />
         </div>
         <div>
           <label class="text-xs text-gray-500">Телефон</label>
@@ -202,15 +241,17 @@
         </div>
         <div>
           <label class="text-xs text-gray-500">Адрес (опционально)</label>
-          <input id="c-address" class="w-full mt-1 p-3 rounded-xl border border-gray-200" placeholder="Улица, дом, подъезд..." />
+          <input id="c-address" class="w-full mt-1 p-3 rounded-xl border border-gray-200"
+            placeholder="Улица, дом, подъезд..." />
         </div>
         <div>
           <label class="text-xs text-gray-500">Комментарий (опционально)</label>
-          <textarea id="c-comment" rows="2" class="w-full mt-1 p-3 rounded-xl border border-gray-200" placeholder="Когда удобно доставить?"></textarea>
+          <textarea id="c-comment" rows="2" class="w-full mt-1 p-3 rounded-xl border border-gray-200"
+            placeholder="Когда удобно доставить?"></textarea>
         </div>
 
         <button onclick="submitOrder()"
-                class="w-full bg-[#d42426] text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
+          class="w-full bg-[#d42426] text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
           Отправить заказ
         </button>
 
@@ -234,6 +275,7 @@
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.expand();
+      tg.enableClosingConfirmation();
       tg.ready();
       // initData надо валидировать на сервере, initDataUnsafe не доверять :contentReference[oaicite:17]{index=17}
     }
@@ -250,9 +292,9 @@
       const box = document.getElementById("status-box");
       wrap.classList.remove("hidden");
       box.className = "p-4 rounded-2xl border text-sm";
-      if (type === "error") box.classList.add("bg-red-50","border-red-200","text-red-900");
-      else if (type === "ok") box.classList.add("bg-green-50","border-green-200","text-green-900");
-      else box.classList.add("bg-gray-50","border-gray-200","text-gray-800");
+      if (type === "error") box.classList.add("bg-red-50", "border-red-200", "text-red-900");
+      else if (type === "ok") box.classList.add("bg-green-50", "border-green-200", "text-green-900");
+      else box.classList.add("bg-gray-50", "border-gray-200", "text-gray-800");
       box.textContent = text;
     }
     function clearStatus() {
@@ -277,7 +319,7 @@
     }
 
     function colorForIndex(i) {
-      const colors = ["bg-orange-100","bg-blue-100","bg-yellow-100","bg-green-100","bg-purple-100","bg-pink-100"];
+      const colors = ["bg-orange-100", "bg-blue-100", "bg-yellow-100", "bg-green-100", "bg-purple-100", "bg-pink-100"];
       return colors[i % colors.length];
     }
 
@@ -325,7 +367,7 @@
       try {
         const key = `cart:${tenantId}`;
         localStorage.setItem(key, JSON.stringify(cart));
-      } catch {}
+      } catch { }
     }
 
     // ========= Data loading =========
@@ -473,7 +515,7 @@
       updateCartUI();
       showToast();
 
-      try { tg?.HapticFeedback?.impactOccurred("medium"); } catch {}
+      try { tg?.HapticFeedback?.impactOccurred("medium"); } catch { }
     }
 
     function removeFromCart(productId) {
@@ -581,7 +623,7 @@
         if (firstName && !document.getElementById("c-name").value) {
           document.getElementById("c-name").value = firstName;
         }
-      } catch {}
+      } catch { }
     }
 
     function closeCheckout() {
@@ -654,4 +696,5 @@
     };
   </script>
 </body>
+
 </html>
