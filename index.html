@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Новогодняя Лавка</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Telegram Mini Apps SDK: подключать в <head> до других скриптов рекомендует Telegram -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script> <!-- :contentReference[oaicite:15]{index=15} -->
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --tg-theme-bg-color: #ffffff;
+      --tg-theme-text-color: #222222;
+      --holiday-red: #d42426;
+      --holiday-gold: #f4b41a;
+      --holiday-green: #14452f;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
+
+    .snow-container {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 50;
+    }
+    .snowflake {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.8;
+      pointer-events: none;
+      animation: fall linear infinite;
+    }
+    @keyframes fall {
+      0% { transform: translateY(-10vh) translateX(0); }
+      100% { transform: translateY(110vh) translateX(20px); }
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+    }
+
+    .product-card { transition: transform 0.2s ease; }
+    .product-card:active { transform: scale(0.95); }
+
+    .badge {
+      background: var(--holiday-red);
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+
+    .category-pill {
+      white-space: nowrap;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      background: #f0f0f0;
+      margin-right: 8px;
+      transition: all 0.3s;
+      user-select: none;
+    }
+    .category-pill.active {
+      background: var(--holiday-red);
+      color: white;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+
+<body class="pb-24">
+  <div id="snow" class="snow-container"></div>
+
+  <!-- Шапка -->
+  <header class="p-4 flex justify-between items-center bg-[#14452f] text-white rounded-b-3xl shadow-lg mb-6">
+    <div>
+      <h1 id="shop-title" class="text-xl font-bold flex items-center">
+        <span class="mr-2">🎄</span> Новогодняя Лавка
+      </h1>
+      <p id="shop-subtitle" class="text-xs opacity-80">Чудеса с доставкой на дом</p>
+    </div>
+
+    <div class="relative" onclick="showView('cart')" role="button" aria-label="Открыть корзину">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+      </svg>
+      <span id="cart-count"
+            class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold">0</span>
+    </div>
+  </header>
+
+  <!-- Состояние: загрузка/ошибка -->
+  <div id="status" class="px-4 -mt-2 mb-4 hidden">
+    <div id="status-box" class="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-sm"></div>
+  </div>
+
+  <!-- Основной контент -->
+  <main id="view-home" class="px-4">
+    <!-- Баннер -->
+    <div class="relative overflow-hidden rounded-2xl mb-6 h-40 bg-gradient-to-r from-red-600 to-red-800 text-white p-6 flex flex-col justify-center">
+      <h2 class="text-2xl font-bold mb-1">Скидка -20%</h2>
+      <p class="text-sm opacity-90 mb-3">На праздничные наборы (если включено бизнесом)</p>
+      <div id="promo-pill" class="text-xs bg-white/20 self-start px-3 py-1 rounded-full hidden"></div>
+      <div class="absolute -right-4 -bottom-4 text-8xl opacity-20">🎁</div>
+    </div>
+
+    <!-- Категории -->
+    <div class="flex overflow-x-auto no-scrollbar mb-6 pb-2" id="categories">
+      <!-- динамически -->
+    </div>
+
+    <!-- Сетка товаров -->
+    <div class="grid grid-cols-2 gap-4" id="product-grid"></div>
+  </main>
+
+  <!-- Корзина -->
+  <main id="view-cart" class="px-4 hidden">
+    <h2 class="text-2xl font-bold mb-6 flex items-center">
+      <button onclick="showView('home')" class="mr-4" aria-label="Назад">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+      </button>
+      Корзина
+    </h2>
+
+    <div id="cart-items" class="space-y-4 mb-8"></div>
+
+    <div id="cart-empty" class="text-center py-20 hidden">
+      <div class="text-6xl mb-4">🛒</div>
+      <p class="text-gray-500">Ваша корзина пока пуста</p>
+      <button onclick="showView('home')" class="mt-4 text-red-600 font-semibold">Вернуться к покупкам</button>
+    </div>
+
+    <div id="cart-summary" class="bg-gray-50 p-6 rounded-2xl space-y-3">
+      <div class="flex justify-between">
+        <span>Товары</span>
+        <span id="summary-subtotal">0 ₽</span>
+      </div>
+      <div class="flex justify-between">
+        <span>Доставка</span>
+        <span class="text-green-600">Бесплатно</span>
+      </div>
+      <div class="border-t pt-3 flex justify-between font-bold text-lg text-red-700">
+        <span>Итого</span>
+        <span id="summary-total">0 ₽</span>
+      </div>
+      <button onclick="openCheckout()"
+              class="w-full bg-[#14452f] text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
+        Оформить заказ
+      </button>
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast"
+       class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-full text-sm z-[200] opacity-0 transition-opacity pointer-events-none">
+    Добавлено в корзину! 🎁
+  </div>
+
+  <!-- Checkout modal -->
+  <div id="checkout-modal" class="fixed inset-0 z-[300] hidden">
+    <div class="absolute inset-0 bg-black/50" onclick="closeCheckout()"></div>
+    <div class="absolute left-1/2 top-1/2 w-[92%] max-w-md -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-5 shadow-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-bold">Оформление заказа</h3>
+        <button class="text-gray-400" onclick="closeCheckout()" aria-label="Закрыть">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-gray-500">Имя</label>
+          <input id="c-name" class="w-full mt-1 p-3 rounded-xl border border-gray-200" placeholder="Как к вам обращаться?" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-500">Телефон</label>
+          <input id="c-phone" class="w-full mt-1 p-3 rounded-xl border border-gray-200" placeholder="+381..." />
+        </div>
+        <div>
+          <label class="text-xs text-gray-500">Адрес (опционально)</label>
+          <input id="c-address" class="w-full mt-1 p-3 rounded-xl border border-gray-200" placeholder="Улица, дом, подъезд..." />
+        </div>
+        <div>
+          <label class="text-xs text-gray-500">Комментарий (опционально)</label>
+          <textarea id="c-comment" rows="2" class="w-full mt-1 p-3 rounded-xl border border-gray-200" placeholder="Когда удобно доставить?"></textarea>
+        </div>
+
+        <button onclick="submitOrder()"
+                class="w-full bg-[#d42426] text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
+          Отправить заказ
+        </button>
+
+        <p class="text-[11px] text-gray-400 leading-snug">
+          Данные пользователя подтверждаются на сервере через Telegram initData.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========= CONFIG =========
+    // Ваш n8n должен отдавать:
+    // POST {API_BASE}/catalog  -> { tenant: {...}, products: [...] }
+    // POST {API_BASE}/order    -> { ok: true, orderId: "..." }
+    //
+    // Webhook node умеет возвращать ответ "When Last Node Finishes" или через Respond to Webhook. :contentReference[oaicite:16]{index=16}
+    const API_BASE = "https://YOUR_N8N_DOMAIN/webhook"; // <-- замените
+
+    // ========= Telegram init =========
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.expand();
+      tg.ready();
+      // initData надо валидировать на сервере, initDataUnsafe не доверять :contentReference[oaicite:17]{index=17}
+    }
+
+    // ========= State =========
+    let tenantId = "default";
+    let tenant = { title: "Новогодняя Лавка", subtitle: "Чудеса с доставкой на дом", currencySymbol: "₽", promoText: "" };
+    let products = [];
+    let cart = [];
+
+    // ========= Utils =========
+    function setStatus(type, text) {
+      const wrap = document.getElementById("status");
+      const box = document.getElementById("status-box");
+      wrap.classList.remove("hidden");
+      box.className = "p-4 rounded-2xl border text-sm";
+      if (type === "error") box.classList.add("bg-red-50","border-red-200","text-red-900");
+      else if (type === "ok") box.classList.add("bg-green-50","border-green-200","text-green-900");
+      else box.classList.add("bg-gray-50","border-gray-200","text-gray-800");
+      box.textContent = text;
+    }
+    function clearStatus() {
+      document.getElementById("status").classList.add("hidden");
+    }
+
+    function getStartParam() {
+      // Telegram: startapp -> tgWebAppStartParam в GET и start_param :contentReference[oaicite:18]{index=18}
+      const sp = new URLSearchParams(window.location.search);
+      return sp.get("tgWebAppStartParam") || sp.get("tenantId") || "";
+    }
+
+    function money(n) {
+      const sym = tenant.currencySymbol || "₽";
+      const v = Number(n || 0);
+      return `${v.toLocaleString("ru-RU")} ${sym}`;
+    }
+
+    function safeText(s, max = 120) {
+      const t = String(s ?? "").trim();
+      return t.length > max ? t.slice(0, max - 1) + "…" : t;
+    }
+
+    function colorForIndex(i) {
+      const colors = ["bg-orange-100","bg-blue-100","bg-yellow-100","bg-green-100","bg-purple-100","bg-pink-100"];
+      return colors[i % colors.length];
+    }
+
+    function normalizeProducts(raw) {
+      const arr = Array.isArray(raw) ? raw : [];
+      return arr.map((p, idx) => ({
+        productId: String(p.productId ?? p.id ?? idx + 1),
+        name: safeText(p.name ?? p.title ?? "Товар"),
+        price: Number(p.price ?? 0),
+        category: String(p.category ?? "all"),
+        emoji: String(p.emoji ?? "🎁"),
+        color: String(p.color ?? colorForIndex(idx)),
+        badge: String(p.badge ?? "")
+      }));
+    }
+
+    // ========= Snow =========
+    function createSnow() {
+      const container = document.getElementById('snow');
+      const count = 24;
+      for (let i = 0; i < count; i++) {
+        const flake = document.createElement('div');
+        flake.className = 'snowflake';
+        const size = (Math.random() * 5 + 2) + 'px';
+        flake.style.width = size;
+        flake.style.height = size;
+        flake.style.left = (Math.random() * 100) + 'vw';
+        flake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        flake.style.animationDelay = (Math.random() * 5) + 's';
+        container.appendChild(flake);
+      }
+    }
+
+    // ========= Cart persistence =========
+    function loadCart() {
+      try {
+        const key = `cart:${tenantId}`;
+        const s = localStorage.getItem(key);
+        cart = s ? JSON.parse(s) : [];
+      } catch { cart = []; }
+      updateCartUI();
+    }
+
+    function saveCart() {
+      try {
+        const key = `cart:${tenantId}`;
+        localStorage.setItem(key, JSON.stringify(cart));
+      } catch {}
+    }
+
+    // ========= Data loading =========
+    async function loadCatalog() {
+      clearStatus();
+      setStatus("info", "Загружаю каталог…");
+
+      tenantId = getStartParam() || "default";
+
+      const payload = {
+        tenantId,
+        initData: tg?.initData || "" // отправляем raw initData для валидации на сервере :contentReference[oaicite:19]{index=19}
+      };
+
+      const res = await fetch(`${API_BASE}/catalog`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        setStatus("error", "Не удалось загрузить каталог. Проверь API_BASE и вебхук /catalog в n8n.");
+        return;
+      }
+
+      const data = await res.json();
+
+      tenant = {
+        title: data?.tenant?.title || tenant.title,
+        subtitle: data?.tenant?.subtitle || tenant.subtitle,
+        currencySymbol: data?.tenant?.currencySymbol || tenant.currencySymbol,
+        promoText: data?.tenant?.promoText || ""
+      };
+
+      products = normalizeProducts(data?.products);
+
+      document.getElementById("shop-title").innerHTML = `<span class="mr-2">🎄</span> ${safeText(tenant.title, 28)}`;
+      document.getElementById("shop-subtitle").textContent = safeText(tenant.subtitle, 60);
+
+      const promo = document.getElementById("promo-pill");
+      if (tenant.promoText) {
+        promo.textContent = tenant.promoText;
+        promo.classList.remove("hidden");
+      } else {
+        promo.classList.add("hidden");
+      }
+
+      buildCategories();
+      renderProducts("all");
+
+      loadCart();
+      clearStatus();
+    }
+
+    // ========= UI =========
+    function buildCategories() {
+      const cats = new Map();
+      cats.set("all", "Все");
+
+      for (const p of products) {
+        const key = p.category || "other";
+        if (!cats.has(key)) {
+          // вы можете маппить “box/toy/sweet/home” в красивые названия
+          const pretty = ({
+            box: "Наборы",
+            toy: "Игрушки",
+            sweet: "Сладости",
+            home: "Для дома"
+          })[key] || key;
+          cats.set(key, pretty);
+        }
+      }
+
+      const wrap = document.getElementById("categories");
+      wrap.innerHTML = "";
+
+      let first = true;
+      for (const [key, label] of cats.entries()) {
+        const pill = document.createElement("div");
+        pill.className = "category-pill" + (first ? " active" : "");
+        pill.textContent = label;
+        pill.onclick = () => {
+          document.querySelectorAll(".category-pill").forEach(p => p.classList.remove("active"));
+          pill.classList.add("active");
+          renderProducts(key);
+        };
+        wrap.appendChild(pill);
+        first = false;
+      }
+    }
+
+    function renderProducts(filter = "all") {
+      const grid = document.getElementById("product-grid");
+      grid.innerHTML = "";
+
+      const filtered = (filter === "all") ? products : products.filter(p => p.category === filter);
+
+      filtered.forEach((product) => {
+        const card = document.createElement("div");
+        card.className = "product-card glass-card p-4 flex flex-col items-center relative";
+
+        const badgeHtml = product.badge ? `<div class="badge">${safeText(product.badge, 20)}</div>` : "";
+
+        card.innerHTML = `
+          ${badgeHtml}
+          <div class="w-full h-32 ${product.color} rounded-xl flex items-center justify-center text-5xl mb-3">
+            ${product.emoji}
+          </div>
+          <div class="w-full text-left">
+            <h3 class="font-semibold text-sm leading-tight mb-1 truncate">${product.name}</h3>
+            <p class="text-red-600 font-bold mb-3">${money(product.price)}</p>
+            <button class="w-full bg-white border border-gray-200 py-2 rounded-lg text-xs font-bold shadow-sm active:bg-gray-100 transition-colors">
+              В корзину
+            </button>
+          </div>
+        `;
+
+        card.querySelector("button").onclick = () => addToCart(product.productId);
+        grid.appendChild(card);
+      });
+    }
+
+    function showView(view) {
+      if (view === "cart") {
+        document.getElementById("view-home").classList.add("hidden");
+        document.getElementById("view-cart").classList.remove("hidden");
+        renderCart();
+      } else {
+        document.getElementById("view-home").classList.remove("hidden");
+        document.getElementById("view-cart").classList.add("hidden");
+      }
+      window.scrollTo(0, 0);
+    }
+
+    // ========= Cart logic =========
+    function addToCart(productId) {
+      const product = products.find(p => p.productId === String(productId));
+      if (!product) return;
+
+      const existing = cart.find(i => i.productId === product.productId);
+      if (existing) existing.qty += 1;
+      else cart.push({ productId: product.productId, qty: 1 });
+
+      saveCart();
+      updateCartUI();
+      showToast();
+
+      try { tg?.HapticFeedback?.impactOccurred("medium"); } catch {}
+    }
+
+    function removeFromCart(productId) {
+      cart = cart.filter(i => i.productId !== String(productId));
+      saveCart();
+      updateCartUI();
+      renderCart();
+    }
+
+    function updateQuantity(productId, delta) {
+      const item = cart.find(i => i.productId === String(productId));
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) removeFromCart(productId);
+      else {
+        saveCart();
+        updateCartUI();
+        renderCart();
+      }
+    }
+
+    function updateCartUI() {
+      const count = cart.reduce((sum, item) => sum + (item.qty || 0), 0);
+      document.getElementById("cart-count").innerText = String(count);
+    }
+
+    function computeCartDetails() {
+      const lines = [];
+      let total = 0;
+
+      for (const item of cart) {
+        const p = products.find(pp => pp.productId === item.productId);
+        if (!p) continue;
+        const lineTotal = p.price * item.qty;
+        total += lineTotal;
+        lines.push({ ...p, qty: item.qty, lineTotal });
+      }
+      return { lines, total };
+    }
+
+    function renderCart() {
+      const container = document.getElementById("cart-items");
+      const summary = document.getElementById("cart-summary");
+      const empty = document.getElementById("cart-empty");
+
+      container.innerHTML = "";
+
+      if (!cart.length) {
+        empty.classList.remove("hidden");
+        summary.classList.add("hidden");
+        return;
+      }
+
+      empty.classList.add("hidden");
+      summary.classList.remove("hidden");
+
+      const { lines, total } = computeCartDetails();
+
+      lines.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "flex items-center space-x-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100";
+        div.innerHTML = `
+          <div class="w-16 h-16 ${item.color} rounded-lg flex items-center justify-center text-3xl">
+            ${item.emoji}
+          </div>
+          <div class="flex-1">
+            <h4 class="font-semibold text-sm">${item.name}</h4>
+            <p class="text-red-600 font-bold">${money(item.price)}</p>
+            <button class="text-[11px] text-gray-400 mt-1">Убрать</button>
+          </div>
+          <div class="flex items-center space-x-3 bg-gray-50 rounded-lg p-1">
+            <button class="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm font-bold">-</button>
+            <span class="w-4 text-center text-sm font-semibold">${item.qty}</span>
+            <button class="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-sm font-bold">+</button>
+          </div>
+        `;
+
+        div.querySelector("button.text-\\[11px\\]").onclick = () => removeFromCart(item.productId);
+        const btnMinus = div.querySelectorAll("button.w-8")[0];
+        const btnPlus = div.querySelectorAll("button.w-8")[1];
+        btnMinus.onclick = () => updateQuantity(item.productId, -1);
+        btnPlus.onclick = () => updateQuantity(item.productId, +1);
+
+        container.appendChild(div);
+      });
+
+      document.getElementById("summary-subtotal").innerText = money(total);
+      document.getElementById("summary-total").innerText = money(total);
+    }
+
+    function showToast() {
+      const toast = document.getElementById("toast");
+      toast.style.opacity = "1";
+      setTimeout(() => { toast.style.opacity = "0"; }, 1600);
+    }
+
+    // ========= Checkout =========
+    function openCheckout() {
+      if (!cart.length) return;
+      document.getElementById("checkout-modal").classList.remove("hidden");
+
+      // авто-заполнение имени (не доверять на сервере, но для UI удобно)
+      try {
+        const firstName = tg?.initDataUnsafe?.user?.first_name;
+        if (firstName && !document.getElementById("c-name").value) {
+          document.getElementById("c-name").value = firstName;
+        }
+      } catch {}
+    }
+
+    function closeCheckout() {
+      document.getElementById("checkout-modal").classList.add("hidden");
+    }
+
+    async function submitOrder() {
+      const name = document.getElementById("c-name").value.trim();
+      const phone = document.getElementById("c-phone").value.trim();
+      const address = document.getElementById("c-address").value.trim();
+      const comment = document.getElementById("c-comment").value.trim();
+
+      if (!name || !phone) {
+        try { tg?.showAlert?.("Пожалуйста, укажите имя и телефон."); } catch { alert("Укажите имя и телефон."); }
+        return;
+      }
+
+      const items = cart.map(i => ({ productId: i.productId, qty: i.qty }));
+      const payload = {
+        tenantId,
+        initData: tg?.initData || "", // сервер должен валидировать по Telegram алгоритму :contentReference[oaicite:20]{index=20}
+        customer: { name, phone, address, comment },
+        items
+      };
+
+      setStatus("info", "Отправляю заказ…");
+
+      const res = await fetch(`${API_BASE}/order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        setStatus("error", "Не удалось отправить заказ. Проверьте вебхук /order в n8n.");
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!data?.ok) {
+        setStatus("error", "Сервер отклонил заказ.");
+        return;
+      }
+
+      clearStatus();
+      closeCheckout();
+
+      cart = [];
+      saveCart();
+      updateCartUI();
+      renderCart();
+
+      try {
+        tg?.showPopup?.({ title: "Готово 🎄", message: `Заказ отправлен! Номер: ${data.orderId || "—"}` });
+      } catch {
+        alert("Заказ отправлен!");
+      }
+
+      // при желании можно закрывать миниапп:
+      // tg?.close?.();
+    }
+
+    // ========= Start =========
+    window.onload = () => {
+      createSnow();
+      loadCatalog().catch(() => {
+        setStatus("error", "Ошибка загрузки. Проверьте сеть и настройки.");
+      });
+    };
+  </script>
+</body>
+</html>
