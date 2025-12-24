@@ -283,17 +283,17 @@
 
     const queryString = window.location.search;
     const urlParams = new URLSearchParams(queryString);
-    const id = urlParams.get('id');
+    const tenantIdFromUrl = urlParams.get('id');
     let tenantIdQuery;
     if (id) {
-      tenantIdQuery = '?q=' + id;
+      tenantIdQuery = '?q=' + tenantIdFromUrl;
     } else {
       tenantIdQuery = '';
     }
 
 
     // ========= State =========
-    let tenantId = "dc83689c7da3";
+    let tenantId = tenantIdFromUrl || "";
     let tenant = { title: "Новогодняя Лавка", subtitle: "Чудеса с доставкой на дом", currencySymbol: "₽", promoText: "" };
     let products = [];
     let cart = [];
