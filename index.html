@@ -284,13 +284,6 @@
     const queryString = window.location.search;
     const urlParams = new URLSearchParams(queryString);
     const tenantIdFromUrl = urlParams.get('id');
-    let tenantIdQuery;
-    if (id) {
-      tenantIdQuery = '?q=' + tenantIdFromUrl;
-    } else {
-      tenantIdQuery = '';
-    }
-
 
     // ========= State =========
     let tenantId = tenantIdFromUrl || "";
@@ -394,7 +387,7 @@
         initData: tg?.initData || "" // отправляем raw initData для валидации на сервере :contentReference[oaicite:19]{index=19}
       };
 
-      const res = await fetch(`${API_BASE}/catalog${tenantIdQuery}`, {
+      const res = await fetch(`${API_BASE}/catalog`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -663,7 +656,7 @@
 
       setStatus("info", "Отправляю заказ…");
 
-      const res = await fetch(`${API_BASE}/order${tenantIdQuery}`, {
+      const res = await fetch(`${API_BASE}/order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
