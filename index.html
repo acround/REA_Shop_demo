@@ -233,7 +233,8 @@
       <div class="space-y-3">
         <div>
           <label class="text-xs text-gray-500">Имя</label>
-          <input id="c-name" class="w-full mt-1 p-3 rounded-xl border border-gray-200" inputmode="text" placeholder="Как к вам обращаться?" />
+          <input id="c-name" class="w-full mt-1 p-3 rounded-xl border border-gray-200" inputmode="text"
+            placeholder="Как к вам обращаться?" />
         </div>
         <div>
           <label class="text-xs text-gray-500">Телефон</label>
@@ -279,6 +280,17 @@
       tg.ready();
       // initData надо валидировать на сервере, initDataUnsafe не доверять :contentReference[oaicite:17]{index=17}
     }
+
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const id = urlParams.get('id');
+    let tenantIdQuery;
+    if (id) {
+      tenantIdQuery = '?q=' + id;
+    } else {
+      tenantIdQuery = '';
+    }
+
 
     // ========= State =========
     let tenantId = "dc83689c7da3";
@@ -382,7 +394,7 @@
         initData: tg?.initData || "" // отправляем raw initData для валидации на сервере :contentReference[oaicite:19]{index=19}
       };
 
-      const res = await fetch(`${API_BASE}/catalog`, {
+      const res = await fetch(`${API_BASE}/catalog${tenantIdQuery}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -651,7 +663,7 @@
 
       setStatus("info", "Отправляю заказ…");
 
-      const res = await fetch(`${API_BASE}/order`, {
+      const res = await fetch(`${API_BASE}/order${tenantIdQuery}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
