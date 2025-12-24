@@ -380,7 +380,7 @@
       clearStatus();
       setStatus("info", "Загружаю каталог…");
 
-      tenantId = getStartParam() || "dc83689c7da3";
+      tenantId = tenantId || getStartParam() || "default";
 
       const payload = {
         tenantId,
